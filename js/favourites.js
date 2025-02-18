@@ -1,4 +1,5 @@
 import { getNextApiKey } from '../assets/pixabaykeys.js';
+import { showToast, handleDownload } from './utils.js';
 // --------------------- MAIN CODE ---------------------
 document.addEventListener("DOMContentLoaded", () => {
     gsap.from(".title", { duration: 1, opacity: 0, y: -50, ease: "power2.out" });
@@ -42,13 +43,9 @@ function renderFavouriteItem(image, container) {
 
     // Create and set up the image element
     const img = document.createElement("img");
-    if (image && image.webformatURL) { // Check if image and webformatURL exist
-        img.src = image.webformatURL;
-    } else {
-        // Using absolute placeholder URL for Vercel deployment testing
-        img.src = 'https://via.placeholder.com/150';
-        console.warn("webformatURL is missing for image:", image);
-    }
+    if (image) {
+      img.src = image.webformatURL || image.thumb || 'https://dummyimage.com/150x150/000/fff';
+    }    
     img.alt = image.tags || "Favourite image";
     favContainer.appendChild(img);
 
@@ -116,37 +113,6 @@ function fetchFullImageData(imageId) {
         });
 }
 
-async function handleDownload(e, image) {
-    e.stopPropagation();
-    e.preventDefault();
-    const imageUrl = image.largeImageURL || image.webformatURL;
-    try {
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        const objectURL = URL.createObjectURL(blob);
-        const tempLink = document.createElement("a");
-        tempLink.href = objectURL;
-
-        // Determine file extension from the URL.
-        let extension = "jpg"; // default extension if none found
-        const urlParts = imageUrl.split(".");
-        if (urlParts.length > 1) {
-            extension = urlParts[urlParts.length - 1].split("?")[0];
-        }
-
-        // Build a custom filename using the image id (or any other property)
-        tempLink.download = `wallhaven-${image.id}.${extension}`;
-
-        document.body.appendChild(tempLink);
-        tempLink.click();
-        document.body.removeChild(tempLink);
-        URL.revokeObjectURL(objectURL);
-        showToast("Thank you for downloading!");
-    } catch (error) {
-        showToast("Unable to download the image.");
-    }
-}
-
 
 function removeFavourite(imageId) {
     let favourites = JSON.parse(localStorage.getItem("favourites") || "[]");
@@ -154,38 +120,4 @@ function removeFavourite(imageId) {
         fav.isFull ? fav.data.id !== imageId : fav.id !== imageId
     );
     localStorage.setItem("favourites", JSON.stringify(favourites));
-}
-
-function showToast(message) {
-    let toastContainer = document.getElementById("toastContainer");
-    if (!toastContainer) {
-        toastContainer = document.createElement("div");
-        toastContainer.id = "toastContainer";
-        document.body.appendChild(toastContainer);
-    }
-    const toast = document.createElement("div");
-    toast.className = "toast";
-    toast.textContent = message;
-    toastContainer.appendChild(toast);
-    if (typeof gsap !== "undefined") {
-        gsap.to(toast, { opacity: 1, duration: 0.5 });
-    } else {
-        toast.style.opacity = 1;
-    }
-    setTimeout(() => {
-        if (typeof gsap !== "undefined") {
-            gsap.to(toast, {
-                opacity: 0,
-                duration: 0.5,
-                onComplete: () => {
-                    toastContainer.removeChild(toast);
-                }
-            });
-        } else {
-            toast.style.opacity = 0;
-            setTimeout(() => {
-                toastContainer.removeChild(toast);
-            }, 500);
-        }
-    }, 2000);
 }

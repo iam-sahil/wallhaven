@@ -1,4 +1,5 @@
 import { getNextApiKey } from '../assets/pixabaykeys.js';
+import { showToast, handleDownload } from './utils.js';
 
 let currentPage = 1;
 let currentQuery = '';
@@ -12,24 +13,6 @@ const grid = document.getElementById('imageGrid');
 // --------------------- HELPER FUNCTIONS ---------------------
 function showLoader(show) {
   loader.style.display = show ? 'block' : 'none';
-}
-
-function showToast(message) {
-  const toastContainer = document.getElementById('toastContainer');
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.textContent = message;
-  toastContainer.appendChild(toast);
-  gsap.to(toast, { opacity: 1, duration: 0.5 });
-  setTimeout(() => {
-    gsap.to(toast, {
-      opacity: 0,
-      duration: 0.5,
-      onComplete: () => {
-        toastContainer.removeChild(toast);
-      },
-    });
-  }, 2000);
 }
 
 function processTags(tags) {
@@ -85,39 +68,6 @@ async function fetchImages(page = 1, query = '') {
   } finally {
     isFetching = false;
     showLoader(false);
-  }
-}
-
-
-// --------------------- IMAGE DOWNLOAD ---------------------
-async function handleDownload(e, image) {
-  e.stopPropagation();
-  e.preventDefault();
-  const imageUrl = image.full; // Use the normalized "full" URL.
-  try {
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-    const objectURL = URL.createObjectURL(blob);
-    const tempLink = document.createElement("a");
-    tempLink.href = objectURL;
-    
-    // Determine file extension from the URL.
-    let extension = "jpg";
-    const urlParts = imageUrl.split(".");
-    if (urlParts.length > 1) {
-      extension = urlParts[urlParts.length - 1].split("?")[0];
-    }
-    
-    tempLink.download = `wallhaven-${image.id}.${extension}`;
-    
-    document.body.appendChild(tempLink);
-    tempLink.click();
-    document.body.removeChild(tempLink);
-    URL.revokeObjectURL(objectURL);
-    showToast("Thank you for downloading!");
-  } catch (error) {
-    console.error("Error downloading image:", error);
-    showToast("Unable to download the image.");
   }
 }
 
