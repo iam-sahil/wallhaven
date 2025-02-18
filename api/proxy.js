@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   if (api === 'wallhaven' && id) {
     let detailUrl = `https://wallhaven.cc/api/v1/w/${id}`;
     // Append API key if available (useful for NSFW wallpapers)
-    const wallhavenKey = process.env.WALLHAVEN_API_KEY;
+    const wallhavenKey = "VF1VzNqjIOjiNs3FDE9AARL2pOlt9QvA";
     if (wallhavenKey) {
       detailUrl += `?apikey=${wallhavenKey}`;
     }

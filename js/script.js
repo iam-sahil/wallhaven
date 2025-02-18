@@ -1,4 +1,5 @@
 import { showToast, handleDownload } from './utils.js';
+import { getNextApiKey } from '../assets/pixabaykeys.js';
 
 let currentPage = 1;
 let currentQuery = '';
@@ -28,13 +29,12 @@ function enforceQueryLimit(query) {
   return truncatedQuery;
 }
 
+// For Pixabay images
 function normalizeImage(image) {
-  // This function will be used for Pixabay images.
-  // For Wallhaven, we normalize in-line (see below).
   return {
     id: image.id,
-    thumb: image.webformatURL,
-    full: image.largeImageURL,
+    thumb: image.webformatURL || image.thumb,
+    full: image.largeImageURL || image.full,
     tags: image.tags
   };
 }
@@ -46,6 +46,7 @@ async function fetchImages(page = 1, query = '') {
 
   // Read the selected API from the dropdown.
   const selectedApi = document.getElementById('apiDropdown').value;
+  console.log("Selected API:", selectedApi);
 
   // Construct the URL to call your Vercel serverless proxy
   const url = `/api/proxy?api=${selectedApi}&query=${encodeURIComponent(
@@ -66,10 +67,9 @@ async function fetchImages(page = 1, query = '') {
       // Wallhaven response: data.data is the array of images.
       images = data.data.map(image => ({
         id: image.id,
-        // Wallhaven returns thumbs as an object. Choose the appropriate size.
+        // Choose an appropriate thumb from the wallhaven thumbs object.
         thumb: image.thumbs.small,
         full: image.path,
-        // Wallhaven may not return tags as a comma-separated string, so adjust if needed.
         tags: image.tags || ''
       }));
     }
@@ -91,6 +91,10 @@ async function fetchImages(page = 1, query = '') {
 // --------------------- HYBRID FAVOURITES FUNCTIONALITY ---------------------
 function handleFavourite(imageData) {
   let favourites = JSON.parse(localStorage.getItem('favourites') || '[]');
+  // Attach the current API selection if not already set.
+  if (!imageData.api) {
+    imageData.api = document.getElementById('apiDropdown').value;
+  }
   const exists = favourites.some(fav =>
     fav.isFull ? fav.data.id === imageData.id : fav.id === imageData.id
   );
@@ -102,13 +106,15 @@ function handleFavourite(imageData) {
   if (favourites.length < 25) {
     newFavourite = {
       isFull: true,
-      data: imageData
+      data: imageData,
+      api: imageData.api
     };
   } else {
     newFavourite = {
       isFull: false,
       id: imageData.id,
-      thumb: imageData.thumb
+      thumb: imageData.thumb,
+      api: imageData.api
     };
   }
   favourites.push(newFavourite);
@@ -143,8 +149,13 @@ function displayPinnedImage(image) {
   container.addEventListener('click', (e) => e.stopPropagation());
   
   const img = document.createElement('img');
-  img.src = image.webformatURL || image.thumb;
-  img.alt = image.tags;
+  // Use Pixabay properties first; if not present, try Wallhaven's thumbs.
+  img.src = image.webformatURL || image.thumb || (image.thumbs && (image.thumbs.small || image.thumbs.large || image.thumbs.original)) || 'https://dummyimage.com/150x150/000/fff';
+  if (Array.isArray(image.tags)) {
+    img.alt = image.tags.map(tag => tag.name).join(', ');
+  } else {
+    img.alt = image.tags || "Favourite image";
+  }
   container.appendChild(img);
   
   const downloadLink = document.createElement('a');
@@ -157,7 +168,7 @@ function displayPinnedImage(image) {
       <path d="m17 22 3-3"/>
       <circle cx="9" cy="9" r="2"/>
     </svg>`;
-  downloadLink.href = image.largeImageURL || image.full || image.webformatURL;
+  downloadLink.href = image.largeImageURL || image.full || image.path || image.webformatURL;
   downloadLink.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -181,6 +192,81 @@ function displayPinnedImage(image) {
   gsap.from(container, { duration: 0.5, opacity: 0, scale: 0.95, ease: "back.out(1.7)" });
 }
 
+// This function now accepts an API parameter to choose the correct endpoint.
+function fetchFullImageData(imageId, api) {
+  if (api === 'wallhaven') {
+    const url = `https://wallhaven.cc/api/v1/w/${imageId}`;
+    return fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.data) {
+          return data.data;
+        } else {
+          removeFavourite(imageId);
+          throw new Error("No data found for image ID " + imageId);
+        }
+      });
+  } else {
+    // Default to Pixabay
+    const apiKey = getNextApiKey();
+    const url = `https://pixabay.com/api/?key=${apiKey}&id=${imageId}`;
+    return fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.hits && data.hits.length > 0) {
+          return data.hits[0];
+        } else {
+          removeFavourite(imageId);
+          throw new Error("No data found for image ID " + imageId);
+        }
+      });
+  }
+}
+
+function removeFavourite(imageId) {
+  let favourites = JSON.parse(localStorage.getItem("favourites") || "[]");
+  favourites = favourites.filter(fav =>
+    fav.isFull ? fav.data.id !== imageId : fav.id !== imageId
+  );
+  localStorage.setItem("favourites", JSON.stringify(favourites));
+}
+
+// --------------------- MAIN CODE (DOM Content Loaded) ---------------------
+document.addEventListener("DOMContentLoaded", () => {
+  // Animate title and grid elements
+  gsap.from(".title", { duration: 1, opacity: 0, y: -50, ease: "power2.out" });
+  gsap.from(".image-grid", { duration: 1, opacity: 0, y: -20, ease: "power2.out", delay: 0.5 });
+  
+  // Render favourites if the favouritesGrid exists
+  const favouritesGrid = document.getElementById("favouritesGrid");
+  if (favouritesGrid) {
+    let favourites = JSON.parse(localStorage.getItem("favourites") || "[]");
+    if (favourites.length === 0) {
+      favouritesGrid.innerHTML = "<p style='color: var(--text-color); text-align: center;'>No favourites yet.</p>";
+    } else {
+      favourites.forEach(item => {
+        if (item.isFull) {
+          renderFavouriteItem(item.data, favouritesGrid);
+        } else {
+          fetchFullImageData(item.id, item.api)
+            .then(fullData => {
+              renderFavouriteItem(fullData, favouritesGrid);
+            })
+            .catch(err => {
+              console.error("Error fetching image details for id " + item.id, err);
+            });
+        }
+      });
+    }
+  }
+  
+  // Start the typewriter effect and initial image search.
+  gsap.from(".search-container", { duration: 1, opacity: 0, y: -20, ease: "power2.out", delay: 0.5 });
+  typeWriter();
+  fetchImages(currentPage, "aesthetic");
+});
+
+// --------------------- ADDITIONAL FUNCTIONS ---------------------
 async function displayImages(images) {
   images.forEach((image) => {
     if (pinnedImageData && image.id === pinnedImageData.id) return;
@@ -191,8 +277,8 @@ async function displayImages(images) {
     container.setAttribute('aria-label', 'Click to search for similar images');
     
     const img = document.createElement('img');
-    img.src = image.webformatURL || image.thumb;
-    img.alt = image.tags;
+    img.src = image.webformatURL || image.thumb || (image.thumbs && (image.thumbs.small || image.thumbs.large || image.thumbs.original));
+    img.alt = Array.isArray(image.tags) ? image.tags.map(tag => tag.name).join(', ') : image.tags;
     container.appendChild(img);
     
     const downloadLink = document.createElement('a');
@@ -205,7 +291,7 @@ async function displayImages(images) {
         <path d="m17 22 3-3"/>
         <circle cx="9" cy="9" r="2"/>
       </svg>`;
-    downloadLink.href = image.largeImageURL || image.full || image.webformatURL;
+    downloadLink.href = image.largeImageURL || image.full || image.path || image.webformatURL;
     downloadLink.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
