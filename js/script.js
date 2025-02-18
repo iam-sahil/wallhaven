@@ -367,9 +367,24 @@ document.getElementById("favouritesPageBtn").addEventListener("click", () => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  gsap.from(".title", { duration: 1, opacity: 0, y: -50, ease: "power2.out" });
-  gsap.from(".image-grid", { duration: 1, opacity: 0, y: -20, ease: "power2.out", delay: 0.5 });
-  gsap.from(".search-container", { duration: 1, opacity: 0, y: -20, ease: "power2.out", delay: 0.5 });
-  typeWriter();
-  fetchImages(currentPage, "aesthetic");
-});
+    // Animate title and grid elements
+    gsap.from(".title", { duration: 1, opacity: 0, y: -50, ease: "power2.out" });
+    gsap.from(".image-grid", { duration: 1, opacity: 0, y: -20, ease: "power2.out", delay: 0.5 });
+    gsap.from(".search-container", { duration: 1, opacity: 0, y: -20, ease: "power2.out", delay: 0.5 });
+    typeWriter();
+    const apiDropdown = document.getElementById('apiDropdown');
+    apiDropdown.addEventListener('change', () => {
+        console.log("API Dropdown changed to:", apiDropdown.value); // Verify event is firing and getting new value
+        grid.innerHTML = '';    // Clear the image grid
+    });
+    // --- WORKAROUND IMPLEMENTATION ---
+    const initialApi = document.getElementById('apiDropdown').value;
+    let initialQuery = "";
+    if (initialApi === 'wallhaven') {
+      initialQuery = "goku"; // Use "goku" for Wallhaven initial load
+    } else if (initialApi === 'pixabay') {
+      initialQuery = "aesthetic"; // Use "aesthetic" for Pixabay initial load
+    }
+    fetchImages(currentPage, initialQuery); // Fetch with API-specific initial query
+    // --- END WORKAROUND IMPLEMENTATION ---
+  });

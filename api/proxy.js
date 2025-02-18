@@ -81,9 +81,7 @@ export default async function handler(req, res) {
   if (api === 'pixabay') {
     // Use your key cycling logic for Pixabay
     const apiKey = getNextApiKey();
-    url = `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(
-      query
-    )}&page=${page}&image_type=photo&per_page=50`;
+    url = `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&page=${page}&image_type=photo&per_page=50`;
   } else if (api === 'wallhaven') {
     // Construct Wallhaven search URL
     url = `https://wallhaven.cc/api/v1/search?q=${encodeURIComponent(query)}&page=${page}`;
