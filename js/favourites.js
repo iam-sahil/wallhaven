@@ -30,16 +30,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
   });
-  
-  // Back Home Button
-  const backHomeBtn = document.getElementById("backHomeBtn");
-  if (backHomeBtn) {
-    backHomeBtn.addEventListener("click", () => {
-      window.location.href = "index.html";
-    });
-  } else {
-    console.error("Back Home button with id 'backHomeBtn' not found!");
-  }
 });
 
 // Render a single favourite item in the grid
