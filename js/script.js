@@ -1,4 +1,3 @@
-import { getNextApiKey } from '../assets/pixabaykeys.js';
 import { showToast, handleDownload } from './utils.js';
 
 let currentPage = 1;
@@ -8,7 +7,6 @@ let pinnedImageData = null;
 
 const loader = document.getElementById('loader');
 const grid = document.getElementById('imageGrid');
-
 
 // --------------------- HELPER FUNCTIONS ---------------------
 function showLoader(show) {
@@ -30,40 +28,59 @@ function enforceQueryLimit(query) {
   return truncatedQuery;
 }
 
-
 function normalizeImage(image) {
-    return {
-      id: image.id,
-      thumb: image.webformatURL,
-      full: image.largeImageURL,
-      tags: image.tags
-    };
-  }
+  // This function will be used for Pixabay images.
+  // For Wallhaven, we normalize in-line (see below).
+  return {
+    id: image.id,
+    thumb: image.webformatURL,
+    full: image.largeImageURL,
+    tags: image.tags
+  };
+}
 
 // --------------------- API FETCHING ---------------------
 async function fetchImages(page = 1, query = '') {
   isFetching = true;
   showLoader(true);
 
-  const apiKey = getNextApiKey();
-  const encodedQuery = encodeURIComponent(enforceQueryLimit(query));
-  const imagesPerPage = 50;
-  const url = query
-    ? `https://pixabay.com/api/?key=${apiKey}&q=${encodedQuery}&page=${page}&image_type=photo&per_page=${imagesPerPage}`
-    : `https://pixabay.com/api/?key=${apiKey}&page=${page}&image_type=photo&per_page=${imagesPerPage}`;
-  console.log('Fetching Pixabay URL:', url);
+  // Read the selected API from the dropdown.
+  const selectedApi = document.getElementById('apiDropdown').value;
+
+  // Construct the URL to call your Vercel serverless proxy
+  const url = `/api/proxy?api=${selectedApi}&query=${encodeURIComponent(
+    enforceQueryLimit(query)
+  )}&page=${page}`;
+
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
-    if (data.hits.length === 0) {
+
+    let images = [];
+
+    if (selectedApi === 'pixabay') {
+      // Pixabay response: data.hits is your array of images.
+      images = data.hits.map(img => normalizeImage(img));
+    } else if (selectedApi === 'wallhaven') {
+      // Wallhaven response: data.data is the array of images.
+      images = data.data.map(image => ({
+        id: image.id,
+        // Wallhaven returns thumbs as an object. Choose the appropriate size.
+        thumb: image.thumbs.small,
+        full: image.path,
+        // Wallhaven may not return tags as a comma-separated string, so adjust if needed.
+        tags: image.tags || ''
+      }));
+    }
+
+    if (images.length === 0) {
       showToast('No images found for your search.');
     } else {
-      const images = data.hits.map(img => normalizeImage(img));
       await displayImages(images);
     }
   } catch (error) {
-    console.error('Error fetching images from Pixabay:', error);
+    console.error(`Error fetching images from ${selectedApi}:`, error);
     showToast('Unable to load images right now. Please try again.');
   } finally {
     isFetching = false;
