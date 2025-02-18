@@ -1,4 +1,4 @@
-import { getNextApiKey } from './pixabaykeys.js';
+import { getNextApiKey } from '../assets/pixabaykeys.js';
 // --------------------- MAIN CODE ---------------------
 document.addEventListener("DOMContentLoaded", () => {
   gsap.from(".title", { duration: 1, opacity: 0, y: -50, ease: "power2.out" });

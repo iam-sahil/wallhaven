@@ -1,4 +1,4 @@
-import { getNextApiKey } from './pixabaykeys.js';
+import { getNextApiKey } from '../assets/pixabaykeys.js';
 
 let currentPage = 1;
 let currentQuery = '';
