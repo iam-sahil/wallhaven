@@ -1,4 +1,4 @@
-import { getNextApiKey } from './pixabayKeys.js';
+import { getNextApiKey } from '../assets/pixabaykeys.js';
 
 export default async function handler(req, res) {
   const { api, query, page, imageUrl, id } = req.query;

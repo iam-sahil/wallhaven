@@ -206,7 +206,19 @@ input:-webkit-autofill:active {
   z-index: 150;
   cursor: pointer;
 }
-
+#apiDropdown {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: var(--text-color);
+  border: 1px solid #f4f4f4;
+  padding: 0.45rem 1rem;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  z-index: 150;
+  cursor: pointer;
+}
 .img-container:hover .favourite-btn {
   opacity: 1;
 }
