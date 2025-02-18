@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wall Haven | Favourites</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="shortcut icon" href="./assets/favicon.ico" type="image/x-icon" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+  </head>
+  <body>
+    <!-- Fixed Back to Home Button -->
+    <button id="backHomeBtn" class="favourites-page-btn">Back to Home</button>
+    <!-- Title that scrolls with the page -->
+    <h1 class="title">favourites.</h1>
+    <div class="image-grid" id="favouritesGrid"></div>
+    <div id="toastContainer"></div>
+
+    <script type="module" src="./js/pixabaykeys.js"></script>
+    <script type="module" src="./js/favourites.js"></script>
+  </body>
+</html>
